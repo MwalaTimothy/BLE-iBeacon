@@ -1,0 +1,101 @@
+﻿BEACON FIRMWARE — QUICKSTART GUIDE
+ESP32-C3 iBeacon with Vibration Wake (LOLIN C3 Mini)
+=====================================================
+
+
+PROJECT COVER / PROTOTYPE PHOTO
+-------------------------------
+  docs/images/prototype-project-cover.jpg
+
+HARDWARE CONNECTIONS
+--------------------
+  GPIO4  <-- SW-420 vibration sensor (Active HIGH)
+  GPIO3  --> Status LED (Active HIGH)
+  USB    --- Serial config + power
+
+LED STATUS
+----------
+  Slow blink (1 s / 100 ms on) : Config window open (cold boot only)
+  Solid ON                      : Advertising iBeacon
+  OFF                           : Deep sleep
+
+FIRST USE — COLD BOOT CONFIGURATION
+-------------------------------------
+1. Connect the device via USB.
+2. The LED begins slow-blinking — config window is open (3 minutes).
+3. Open a serial monitor at 115200 baud.
+4. Type HELP to see all commands.
+5. Configure as needed (see COMMANDS below).
+6. Type SAVE to persist settings to flash.
+7. After the 3-minute window the device sleeps automatically.
+   Trigger the vibration sensor to verify advertising.
+
+NOTE: The config window opens on COLD BOOT only.
+      Vibration wakes go straight to advertising — no serial prompt.
+
+COMMANDS
+--------
+  HELP                    Show command list
+  CONFIG                  Show current settings
+  SAVE                    Persist settings to NVS flash
+
+  SET NAME <value>        Beacon / device name
+  SET UUID <uuid>         Proximity UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  SET MAJOR <0-65535>     Major value
+  SET MINOR <0-65535>     Minor value
+  SET DURATION <ms>       Advertising duration (default 60000 = 1 minute)
+  SET TXPOWER <dBm>       TX power (default -8 dBm for ~3 m range)
+
+DEFAULTS
+--------
+  Name       : Trattoria Beacon
+  UUID       : 8a46676d-6348-4d50-a0e6-af5a508def40
+  Major      : 1
+  Minor      : 1
+  Duration   : 60000 ms (1 min)
+  TX Power   : -8 dBm (~3 m range)
+  Config win : 180 s (cold boot only)
+
+NORMAL OPERATION
+----------------
+  1. Device is in deep sleep (~5 uA).
+  2. SW-420 detects vibration -> GPIO4 goes HIGH -> device wakes.
+  3. LED turns solid ON; iBeacon advertises for <duration> ms.
+  4. Device waits for vibration to stop (GPIO4 LOW, stable 800 ms).
+     If GPIO4 stays HIGH, device sleeps after 10 s anyway.
+  5. Device returns to deep sleep; LED turns OFF.
+  6. Repeat from step 1.
+
+SCAN / VERIFY
+-------------
+  1. Install nRF Connect on iOS or Android.
+  2. Trigger the vibration sensor (shake or tap).
+  3. Scan and locate the beacon by its configured name.
+  4. Confirm UUID, Major, Minor, RSSI, and TX power.
+
+TROUBLESHOOTING
+---------------
+  Config window won't open    -> Power-cycle (USB disconnect + reconnect).
+                                 Cold boot is the only trigger.
+  Serial commands ignored     -> Config window already expired (3 min).
+                                 Power-cycle to reopen it.
+  Beacon not visible          -> Vibration not detected. Shake the SW-420 sensor.
+  Short range                 -> Use SET TXPOWER 0 (0 dBm ~10 m) or
+                                 SET TXPOWER 4 (4 dBm max).
+  Device won't sleep          -> GPIO4 still HIGH (sensor active).
+                                 Wait up to 10 s; device sleeps automatically.
+  Settings lost on reboot     -> Type SAVE before the config window closes.
+
+BUILD & UPLOAD
+--------------
+  Build:
+    pio run --environment lolin_c3_mini
+
+  Upload (adjust COM port):
+    pio run --environment lolin_c3_mini --target upload --upload-port COM18
+
+  Monitor:
+    pio device monitor --environment lolin_c3_mini --port COM18 --baud 115200
+
+See README.md for full documentation.
+
