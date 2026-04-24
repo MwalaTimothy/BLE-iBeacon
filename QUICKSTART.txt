@@ -1,11 +1,17 @@
-﻿BEACON FIRMWARE — QUICKSTART GUIDE
-ESP32-C3 iBeacon with Vibration Wake (LOLIN C3 Mini)
-=====================================================
+BEACON FIRMWARE SYSTEM - QUICKSTART GUIDE
+ESP32-C3 iBeacon + Gateway (LOLIN C3 Mini)
+==========================================
+
+This system has two devices:
+  BEACON  - Vibration-triggered iBeacon transmitter (deep sleep, ~5 uA)
+  GATEWAY - Always-on BLE scanner + KDS reporter (WiFi, HTTP POST)
+
+Both run on the ESP32-C3 (LOLIN C3 Mini) with Arduino/NimBLE.
 
 
-PROJECT COVER / PROTOTYPE PHOTO
--------------------------------
-  docs/images/prototype-project-cover.jpg
+========================================================
+PART 1: BEACON DEVICE
+========================================================
 
 HARDWARE CONNECTIONS
 --------------------
@@ -13,41 +19,43 @@ HARDWARE CONNECTIONS
   GPIO3  --> Status LED (Active HIGH)
   USB    --- Serial config + power
 
-LED STATUS
-----------
+LED STATUS (Beacon)
+-------------------
   Slow blink (1 s / 100 ms on) : Config window open (cold boot only)
   Solid ON                      : Advertising iBeacon
   OFF                           : Deep sleep
 
-FIRST USE — COLD BOOT CONFIGURATION
+FIRST USE - COLD BOOT CONFIGURATION
 -------------------------------------
-1. Connect the device via USB.
-2. The LED begins slow-blinking — config window is open (3 minutes).
+1. Connect the beacon via USB.
+2. LED begins slow-blinking - config window is open (3 minutes).
 3. Open a serial monitor at 115200 baud.
-4. Type HELP to see all commands.
-5. Configure as needed (see COMMANDS below).
+4. Type CONFIG to see current settings.
+5. Set UUID, Major, and Minor to match your system layout.
+   Example: SET MAJOR 1
+            SET MINOR 5
 6. Type SAVE to persist settings to flash.
-7. After the 3-minute window the device sleeps automatically.
-   Trigger the vibration sensor to verify advertising.
+7. After the 3-minute window, the device sleeps automatically.
+8. Shake or tap the SW-420 to verify the beacon advertises.
 
 NOTE: The config window opens on COLD BOOT only.
-      Vibration wakes go straight to advertising — no serial prompt.
+      Vibration wakes go straight to advertising - no serial prompt.
 
-COMMANDS
---------
+BEACON COMMANDS
+---------------
   HELP                    Show command list
   CONFIG                  Show current settings
   SAVE                    Persist settings to NVS flash
 
   SET NAME <value>        Beacon / device name
   SET UUID <uuid>         Proximity UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-  SET MAJOR <0-65535>     Major value
-  SET MINOR <0-65535>     Minor value
+  SET MAJOR <0-65535>     Major value (zone ID)
+  SET MINOR <0-65535>     Minor value (item ID)
   SET DURATION <ms>       Advertising duration (default 60000 = 1 minute)
   SET TXPOWER <dBm>       TX power (default -8 dBm for ~3 m range)
 
-DEFAULTS
---------
+BEACON DEFAULTS
+---------------
   Name       : Trattoria Beacon
   UUID       : 8a46676d-6348-4d50-a0e6-af5a508def40
   Major      : 1
@@ -56,8 +64,8 @@ DEFAULTS
   TX Power   : -8 dBm (~3 m range)
   Config win : 180 s (cold boot only)
 
-NORMAL OPERATION
-----------------
+BEACON NORMAL OPERATION
+------------------------
   1. Device is in deep sleep (~5 uA).
   2. SW-420 detects vibration -> GPIO4 goes HIGH -> device wakes.
   3. LED turns solid ON; iBeacon advertises for <duration> ms.
@@ -66,36 +74,146 @@ NORMAL OPERATION
   5. Device returns to deep sleep; LED turns OFF.
   6. Repeat from step 1.
 
-SCAN / VERIFY
--------------
-  1. Install nRF Connect on iOS or Android.
-  2. Trigger the vibration sensor (shake or tap).
-  3. Scan and locate the beacon by its configured name.
-  4. Confirm UUID, Major, Minor, RSSI, and TX power.
-
-TROUBLESHOOTING
----------------
+BEACON TROUBLESHOOTING
+-----------------------
   Config window won't open    -> Power-cycle (USB disconnect + reconnect).
-                                 Cold boot is the only trigger.
   Serial commands ignored     -> Config window already expired (3 min).
                                  Power-cycle to reopen it.
-  Beacon not visible          -> Vibration not detected. Shake the SW-420 sensor.
-  Short range                 -> Use SET TXPOWER 0 (0 dBm ~10 m) or
-                                 SET TXPOWER 4 (4 dBm max).
-  Device won't sleep          -> GPIO4 still HIGH (sensor active).
-                                 Wait up to 10 s; device sleeps automatically.
+  Beacon not visible          -> Vibration not detected. Shake the SW-420.
+  Short range                 -> SET TXPOWER 0  (~10 m)
+                                 SET TXPOWER 4  (max range)
+  Device won't sleep          -> GPIO4 still HIGH. Device sleeps after 10 s anyway.
   Settings lost on reboot     -> Type SAVE before the config window closes.
 
-BUILD & UPLOAD
---------------
-  Build:
-    pio run --environment lolin_c3_mini
 
-  Upload (adjust COM port):
-    pio run --environment lolin_c3_mini --target upload --upload-port COM18
+========================================================
+PART 2: GATEWAY DEVICE
+========================================================
 
-  Monitor:
-    pio device monitor --environment lolin_c3_mini --port COM18 --baud 115200
+HARDWARE CONNECTIONS
+--------------------
+  GPIO3  --> WiFi status LED (Active HIGH)
+  USB    --- Serial config + power (device runs continuously)
 
-See README.md for full documentation.
+LED STATUS (Gateway)
+--------------------
+  Slow blink (1 s / 100 ms on) : Config window open (cold boot only)
+  Solid ON                      : WiFi connected + scanning
+  OFF                           : WiFi disconnected
 
+FIRST USE - COLD BOOT CONFIGURATION
+-------------------------------------
+1. Connect the gateway via USB.
+2. LED begins slow-blinking - config window is open (3 minutes).
+3. Open a serial monitor at 115200 baud.
+4. Set the UUID and Major to match your beacons:
+     SET UUID 8a46676d-6348-4d50-a0e6-af5a508def40
+     SET MAJOR 1
+5. Set the KDS server address:
+     SET KDS_IP 192.168.1.100
+     SET KDS_PORT 8080
+6. Connect to WiFi (set credentials + connect + save in one step):
+     AT+WIFI=MyNetwork,MyPassword
+7. Type SAVE to persist all settings.
+8. After 3 minutes, the config window closes and BLE scanning begins.
+   The gateway runs continuously - no deep sleep.
+
+QUICK WIFI SETUP
+-----------------
+  AT+WIFI=<SSID>,<PASSWORD>
+  Example: AT+WIFI=HomeNetwork,hunter2
+
+  This command sets credentials, attempts to connect, and saves if successful.
+  The gateway will reconnect automatically if WiFi drops.
+
+GATEWAY COMMANDS
+----------------
+  HELP              Show all commands
+  CONFIG            Show current configuration
+  SAVE              Save configuration to NVS flash
+
+  WIFI SCAN         Scan available WiFi networks
+  WIFI STATUS       Show WiFi connection details
+  WIFI CONNECT      Connect using saved credentials
+  WIFI DISCONNECT   Disconnect from WiFi
+  WIFI CLEAR        Clear saved WiFi credentials
+
+  BLE DEBUG ON      Print each detected iBeacon packet to serial
+  BLE DEBUG OFF     Disable per-packet debug output
+  BEACONS           List all currently tracked beacons
+  CLEAR BEACONS     Clear beacon tracking list
+
+  SET GW_ID <id>    Set gateway identifier string
+  SET UUID <uuid>   Set beacon UUID filter
+  SET MAJOR <val>   Target major (0-65534; 65535 = accept all majors)
+  SET KDS_IP <ip>   KDS server IP address
+  SET KDS_PORT <p>  KDS server port
+  SET SCAN_MS <ms>  BLE scan interval (100-60000 ms)
+  SET REPORT_MS <ms>Report interval (1000-600000 ms)
+  SET WIFI_SSID <s> WiFi SSID
+  SET WIFI_PASS <p> WiFi password
+  AT+WIFI=<s>,<p>   Set credentials + connect + save
+
+GATEWAY DEFAULTS
+----------------
+  Gateway ID     : gateway-001
+  UUID           : 8a46676d-6348-4d50-a0e6-af5a508def40
+  Target Major   : 1  (65535 = track all majors)
+  KDS IP         : 192.168.1.100
+  KDS Port       : 8080
+  Scan interval  : 5000 ms
+  Report interval: 10000 ms
+  Beacon timeout : 30000 ms (stale removal)
+  Config window  : 180 s (cold boot only)
+
+GATEWAY NORMAL OPERATION
+-------------------------
+  1. BLE scan runs continuously in the background.
+  2. Beacons matching UUID + Major are tracked (up to 100).
+  3. Any beacon not seen for 30 s is removed from the list.
+  4. Every <report_interval> ms: POST /beacons to KDS with JSON payload.
+  5. If WiFi is unavailable, the beacon report is printed to serial only.
+  6. WiFi reconnects automatically every 15 s if the connection drops.
+
+GATEWAY TROUBLESHOOTING
+------------------------
+  No beacons detected      -> Check UUID and Major match the beacon config.
+                              Enable BLE DEBUG ON to see raw packets.
+  HTTP POST fails          -> Verify KDS IP and port with CONFIG command.
+                              Confirm the KDS server is running and reachable.
+  WiFi won't connect       -> Run WIFI SCAN to confirm network is visible.
+                              Re-run AT+WIFI=SSID,PASS with correct credentials.
+  Stale beacons shown      -> Use CLEAR BEACONS to reset the tracking list.
+  Settings lost on reboot  -> Type SAVE before the config window closes.
+
+
+========================================================
+FLASHING THE PRE-BUILT BINARY
+========================================================
+
+The file beacon_firmware_v1.1_merged.bin is a single image
+(bootloader + partition table + app) that flashes to address 0x0.
+
+  esptool.py --chip esp32c3 --port <PORT> --baud 460800 write_flash 0x0 beacon_firmware_v1.1_merged.bin
+
+Replace <PORT> with your serial port (COM18 on Windows, /dev/ttyUSB0 on Linux).
+
+Windows GUI: Use Espressif Flash Download Tool - select ESP32-C3,
+             add file at address 0x0, set baud 460800, press START.
+
+Browser:     Open https://esp.huhn.me in Chrome/Edge, connect device,
+             add binary at offset 0x0, click Program.
+
+
+========================================================
+SCAN / VERIFY
+========================================================
+
+  1. Install nRF Connect on iOS or Android.
+  2. Trigger the vibration sensor on the beacon (shake or tap).
+  3. Scan and locate the beacon by its configured name.
+  4. Confirm UUID, Major, Minor, RSSI, and TX power.
+  5. On the gateway serial monitor, type BEACONS to confirm detection.
+  6. Watch the serial output for the next HTTP report to the KDS server.
+
+See README.md for full architecture documentation.
