@@ -1,6 +1,12 @@
 # Beacon Firmware — ESP32-C3 iBeacon with Vibration Wake
+![ESP32-C3](https://img.shields.io/badge/ESP32--C3-Microcontroller-blue)
+![BLE](https://img.shields.io/badge/BLE-iBeacon-blueviolet)
+![Low-Power](https://img.shields.io/badge/Ultra--Low--Power-5µA-brightgreen)
+![Arduino](https://img.shields.io/badge/Arduino-Framework-00979D)
+![NimBLE](https://img.shields.io/badge/NimBLE-2.1.0-orange)
+![Production-Ready](https://img.shields.io/badge/Status-Production--Ready-success)
 
-<!-- Add prototype photo to docs/images/prototype-project-cover.jpg -->
+<img width="1663" height="1247" alt="Media" src="https://github.com/user-attachments/assets/24b0554a-cc65-4bd6-acee-02b8cb318c33" />
 
 **Version**: 1.1  
 **Target**: ESP32-C3 (LOLIN C3 Mini)  
